@@ -1,0 +1,13 @@
+pandas
+numpy
+requests
+scikit-learn
+lightgbm
+matplotlib
+seaborn
+pyyaml
+python-dotenv
+jupyter
+dvc
+mlflow
+pytest
