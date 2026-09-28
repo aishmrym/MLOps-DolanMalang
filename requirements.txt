@@ -7,6 +7,7 @@ matplotlib
 seaborn
 pyyaml
 python-dotenv
+holidays
 jupyter
 dvc
 mlflow
