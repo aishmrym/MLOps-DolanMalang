@@ -1,0 +1,59 @@
+# config/locations.yaml
+#
+# Daftar lokasi yang dipantau oleh pipeline DolanMalang.
+# Koordinat berikut adalah perkiraan titik publik masing-masing tempat;
+# silakan sesuaikan lat/lon jika kamu punya titik yang lebih presisi
+# (mis. hasil pencocokan manual di Google Maps).
+#
+# elevation_m dipakai sebagai fitur statis pada tahap feature engineering
+# (LK-05), bukan ditarik dari API — makanya disimpan di sini, bukan di
+# data/raw/.
+
+locations:
+  - id: kayutangan
+    name: "Kayutangan Heritage"
+    latitude: -7.9781
+    longitude: 112.6304
+    elevation_m: 446
+
+  - id: alun_alun_malang
+    name: "Alun-Alun Kota Malang"
+    latitude: -7.9825
+    longitude: 112.6306
+    elevation_m: 445
+
+  - id: jatim_park
+    name: "Jatim Park 2, Batu"
+    latitude: -7.8712
+    longitude: 112.5175
+    elevation_m: 900
+
+  - id: bns
+    name: "Batu Night Spectacular"
+    latitude: -7.8677
+    longitude: 112.5239
+    elevation_m: 870
+
+  - id: coban_talun
+    name: "Coban Talun, Batu"
+    latitude: -7.8285
+    longitude: 112.5192
+    elevation_m: 1200
+
+  - id: panderman
+    name: "Gunung Panderman"
+    latitude: -7.8804
+    longitude: 112.4763
+    elevation_m: 1361
+
+  - id: bromo
+    name: "Gunung Bromo (kawah)"
+    latitude: -7.9425
+    longitude: 112.9530
+    elevation_m: 2177
+
+  - id: balekambang
+    name: "Pantai Balekambang"
+    latitude: -8.4275
+    longitude: 112.5352
+    elevation_m: 5
