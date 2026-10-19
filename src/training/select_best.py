@@ -22,7 +22,8 @@ PARAM_KEYS = [
     "learning_rate", "min_samples_leaf", "horizon_hours", "seed",
 ]
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("select_best")
 
 
@@ -34,12 +35,13 @@ def print_comparison(runs: list) -> None:
         m = run.data.metrics
         gap = m["test_mae"] - m["train_mae"]
         print(f"{run.info.run_name:<34}{m['train_mae']:>10.3f}{m['test_mae']:>10.3f}"
-              f"{gap:>8.3f}{m['test_skill_scor e_pct']:>9.1f}")
+              f"{gap:>8.3f}{m['test_skill_score_pct']:>9.1f}")
     print()
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Pilih & daftarkan model terbaik.")
+    parser = argparse.ArgumentParser(
+        description="Pilih & daftarkan model terbaik.")
     parser.add_argument("--tracking-uri", default=DEFAULT_TRACKING_URI)
     parser.add_argument("--no-register", action="store_true",
                         help="Hanya tulis metadata, jangan daftar ke Model Registry.")
@@ -49,7 +51,8 @@ def main() -> int:
     client = MlflowClient()
     experiment = client.get_experiment_by_name(EXPERIMENT_NAME)
     if experiment is None:
-        logger.error("Eksperimen '%s' belum ada. Jalankan train.py dulu.", EXPERIMENT_NAME)
+        logger.error(
+            "Eksperimen '%s' belum ada. Jalankan train.py dulu.", EXPERIMENT_NAME)
         return 1
 
     runs = client.search_runs(
@@ -65,9 +68,11 @@ def main() -> int:
     best = runs[0]
     m = best.data.metrics
     if m["test_skill_score_pct"] <= 0:
-        logger.warning("Run terbaik pun belum mengungguli baseline naif (skill <= 0).")
+        logger.warning(
+            "Run terbaik pun belum mengungguli baseline naif (skill <= 0).")
 
-    model_uri = best.data.tags.get("model_uri") or f"runs:/{best.info.run_id}/model"
+    model_uri = best.data.tags.get(
+        "model_uri") or f"runs:/{best.info.run_id}/model"
     metadata = {
         "selected_at": datetime.now().isoformat(timespec="seconds"),
         "selection_criterion": "test_mae terendah",
@@ -87,16 +92,20 @@ def main() -> int:
 
     if not args.no_register:
         version = mlflow.register_model(model_uri, REGISTERED_MODEL_NAME)
-        metadata["registered_model"] = {"name": REGISTERED_MODEL_NAME, "version": version.version}
+        metadata["registered_model"] = {
+            "name": REGISTERED_MODEL_NAME, "version": version.version}
         try:
-            client.set_registered_model_alias(REGISTERED_MODEL_NAME, "champion", version.version)
+            client.set_registered_model_alias(
+                REGISTERED_MODEL_NAME, "champion", version.version)
             metadata["registered_model"]["alias"] = "champion"
         except Exception as exc:  # noqa: BLE001 - alias tidak ada di MLflow lama
             logger.warning("Alias 'champion' tidak bisa dipasang: %s", exc)
-        logger.info("Terdaftar di Model Registry: %s v%s", REGISTERED_MODEL_NAME, version.version)
+        logger.info("Terdaftar di Model Registry: %s v%s",
+                    REGISTERED_MODEL_NAME, version.version)
 
     METADATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    METADATA_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+    METADATA_PATH.write_text(json.dumps(
+        metadata, indent=2, ensure_ascii=False), encoding="utf-8")
     logger.info("Metadata model terbaik ditulis ke %s", METADATA_PATH)
     print(json.dumps(metadata["params"], indent=2))
     return 0
