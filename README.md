@@ -120,3 +120,40 @@ Proyek ini menggunakan **GitHub Flow**:
 ## Status
 
 Proyek sudah melewati tahap inisiasi (LK-01, LK-02), perancangan pipeline data (LK-03), dan implementasi ingestion + preprocessing (LK-04). Detail lengkap ada di `docs/`.
+
+
+## Eksperimen ML dengan MLflow (LK-06)
+
+Model memprediksi **Outdoor Comfort Index** (0-100) 24 jam ke depan per lokasi dari kondisi saat ini. Label dihitung otomatis oleh `src/features/comfort_index.py`, lalu digeser ke depan, sehingga model memprediksi masa depan dan bukan menghitung ulang rumus yang sama. Split train/test berbasis waktu (tanpa kebocoran), dan setiap run dibandingkan dengan **baseline naif** (indeks saat ini dipakai sebagai prediksi).
+
+### Menjalankan eksperimen
+```bash
+pip install -r requirements.txt
+bash scripts/run_experiments.sh                 # 5 run dengan hyperparameter berbeda
+python src/training/train.py --model ridge --alpha 1.0 --run-version v1   # satu run
+```
+
+### Membuka MLflow UI
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+Di Codespaces, buka tab **Ports** lalu klik alamat port 5000. Jika muncul `Invalid Host header`, jalankan:
+```bash
+mlflow server --backend-store-uri sqlite:///mlflow.db --port 5000 \
+    --allowed-hosts "*" --cors-allowed-origins "*"
+```
+
+### Memilih dan mendaftarkan model terbaik
+```bash
+python src/training/select_best.py
+```
+Skrip menampilkan tabel perbandingan seluruh run, mendaftarkan run dengan `test_mae` terendah ke Model Registry (alias `champion`), dan menulis `models/best_model_metadata.json`.
+
+### Yang dicatat di setiap run
+- **Parameter:** model, hyperparameter, horizon, seed, ukuran train/test, batas split.
+- **Metrik:** MAE/RMSE/R2 train dan test, MAE baseline, skill score, MAE per lokasi.
+- **Artefak:** model (dengan signature), plot fitur penting, plot aktual vs prediksi, `test_predictions.csv`, `requirements.txt`.
+- **Tag reproduksibilitas:** `dataset_version` (hash md5 dari `data/raw.dvc`) dan `git_commit`, sehingga tiap run bisa ditelusuri ke versi data dan kode yang tepat.
+
+### Reproduksibilitas
+Seed tetap (`--seed 42`), split berbasis waktu yang deterministik, data versi DVC, dan lingkungan Codespaces yang sama. Menjalankan ulang perintah yang sama pada versi data yang sama menghasilkan metrik yang sama.
