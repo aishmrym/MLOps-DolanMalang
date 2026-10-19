@@ -278,7 +278,10 @@ def log_model_compat(model: Pipeline, signature: Any, input_example: pd.DataFram
     kwargs = {
         "signature": signature,
         "input_example": input_example,
-        "skops_trusted_types": ["numpy.dtype"],
+        "skops_trusted_types": [
+            "numpy.dtype",
+            "sklearn.tree._tree.Tree",
+        ],
     }
 
     try:
