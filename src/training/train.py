@@ -125,7 +125,8 @@ def build_supervised_frame(df: pd.DataFrame, horizon_hours: int) -> pd.DataFrame
         df[f"{prefix}hour_cos"] = np.cos(2 * np.pi * hour / 24)
 
     df = df.dropna(subset=["target", "comfort_now"])
-    logger.info("Dataset supervised: %d baris, %d lokasi.", len(df), df["location_id"].nunique())
+    logger.info("Dataset supervised: %d baris, %d lokasi.",
+                len(df), df["location_id"].nunique())
     return df
 
 
@@ -145,8 +146,10 @@ def time_split(
     train = frame[frame["target_time"] <= cutoff]
     test = frame[frame["time"] > cutoff]
     if train.empty or test.empty:
-        raise ValueError("Split waktu menghasilkan set kosong; data terlalu sedikit.")
-    logger.info("Split waktu: cutoff=%s, train=%d, test=%d", cutoff, len(train), len(test))
+        raise ValueError(
+            "Split waktu menghasilkan set kosong; data terlalu sedikit.")
+    logger.info("Split waktu: cutoff=%s, train=%d, test=%d",
+                cutoff, len(train), len(test))
     return train, test, cutoff
 
 
@@ -156,7 +159,8 @@ def time_split(
 
 def build_model(args: argparse.Namespace) -> Pipeline:
     """Membangun pipeline imputasi -> (scaling) -> regresor sesuai argumen."""
-    steps: list[tuple[str, Any]] = [("imputer", SimpleImputer(strategy="median"))]
+    steps: list[tuple[str, Any]] = [
+        ("imputer", SimpleImputer(strategy="median"))]
 
     if args.model == "ridge":
         steps.append(("scaler", StandardScaler()))
@@ -225,7 +229,8 @@ def plot_feature_importance(model: Pipeline, out_path: Path) -> None:
     if hasattr(regressor, "feature_importances_"):
         values, label = regressor.feature_importances_, "importance"
     else:
-        values, label = np.abs(regressor.coef_), "|koefisien| (fitur terstandarisasi)"
+        values, label = np.abs(
+            regressor.coef_), "|koefisien| (fitur terstandarisasi)"
 
     order = np.argsort(values)[-12:]
     fig, ax = plt.subplots(figsize=(7, 4.5))
@@ -240,15 +245,19 @@ def plot_feature_importance(model: Pipeline, out_path: Path) -> None:
 def plot_test_timeseries(test_df: pd.DataFrame, pred: np.ndarray, out_path: Path) -> None:
     """Aktual vs prediksi vs baseline untuk dua lokasi (elevasi terendah/tertinggi)."""
     elev = test_df.groupby("location_id")["elevation_m"].first().sort_values()
-    picks = [elev.index[0], elev.index[-1]] if len(elev) > 1 else [elev.index[0]]
+    picks = [elev.index[0], elev.index[-1]
+             ] if len(elev) > 1 else [elev.index[0]]
 
-    fig, axes = plt.subplots(len(picks), 1, figsize=(8, 3.2 * len(picks)), sharex=True)
+    fig, axes = plt.subplots(len(picks), 1, figsize=(
+        8, 3.2 * len(picks)), sharex=True)
     axes = np.atleast_1d(axes)
     plot_df = test_df.assign(pred=pred)
     for ax, loc in zip(axes, picks):
         sub = plot_df[plot_df["location_id"] == loc].sort_values("target_time")
-        ax.plot(sub["target_time"], sub["target"], label="aktual", color="black")
-        ax.plot(sub["target_time"], sub["pred"], label="prediksi model", color="#C55A11")
+        ax.plot(sub["target_time"], sub["target"],
+                label="aktual", color="black")
+        ax.plot(sub["target_time"], sub["pred"],
+                label="prediksi model", color="#C55A11")
         ax.plot(sub["target_time"], sub["comfort_now"], label="baseline naif",
                 color="#888888", linestyle="--")
         ax.set_ylabel("comfort index")
@@ -265,15 +274,20 @@ def plot_test_timeseries(test_df: pd.DataFrame, pred: np.ndarray, out_path: Path
 # --------------------------------------------------------------------------
 
 def log_model_compat(model: Pipeline, signature: Any, input_example: pd.DataFrame) -> Any:
-    """log_model yang kompatibel dengan MLflow 3 (`name`) dan 2.x (`artifact_path`)."""
+    """Log model dengan kompatibilitas MLflow 3 (`name`) dan 2.x (`artifact_path`)."""
+    kwargs = {
+        "signature": signature,
+        "input_example": input_example,
+        "skops_trusted_types": ["numpy.dtype"],
+    }
+
     try:
-        return mlflow.sklearn.log_model(
-            model, name="model", signature=signature, input_example=input_example
-        )
-    except TypeError:
-        return mlflow.sklearn.log_model(
-            model, artifact_path="model", signature=signature, input_example=input_example
-        )
+        return mlflow.sklearn.log_model(model, name="model", **kwargs)
+    except TypeError as exc:
+        # MLflow 2.x memakai `artifact_path`; fallback hanya untuk argumen `name`.
+        if "name" not in str(exc):
+            raise
+        return mlflow.sklearn.log_model(model, artifact_path="model", **kwargs)
 
 
 def run_experiment(args: argparse.Namespace) -> int:
@@ -325,7 +339,8 @@ def run_experiment(args: argparse.Namespace) -> int:
         fit_seconds = time.perf_counter() - started
 
         pred_train, pred_test = model.predict(x_train), model.predict(x_test)
-        baseline_mae = float(mean_absolute_error(y_test, test_df["comfort_now"]))
+        baseline_mae = float(mean_absolute_error(
+            y_test, test_df["comfort_now"]))
 
         metrics = {
             **regression_metrics(y_train, pred_train, "train"),
@@ -333,24 +348,30 @@ def run_experiment(args: argparse.Namespace) -> int:
             "baseline_test_mae": baseline_mae,
             "fit_seconds": fit_seconds,
         }
-        metrics["test_skill_score_pct"] = 100 * (baseline_mae - metrics["test_mae"]) / baseline_mae
+        metrics["test_skill_score_pct"] = 100 * \
+            (baseline_mae - metrics["test_mae"]) / baseline_mae
         for loc, group in test_df.assign(pred=pred_test).groupby("location_id"):
-            metrics[f"test_mae_{loc}"] = float(mean_absolute_error(group["target"], group["pred"]))
+            metrics[f"test_mae_{loc}"] = float(
+                mean_absolute_error(group["target"], group["pred"]))
         mlflow.log_metrics(metrics)
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_dir = Path(tmp)
             plot_feature_importance(model, tmp_dir / "feature_importance.png")
-            plot_test_timeseries(test_df, pred_test, tmp_dir / "test_timeseries.png")
+            plot_test_timeseries(test_df, pred_test,
+                                 tmp_dir / "test_timeseries.png")
             test_df.assign(pred=pred_test)[
-                ["location_id", "time", "target_time", "target", "pred", "comfort_now"]
+                ["location_id", "time", "target_time",
+                    "target", "pred", "comfort_now"]
             ].to_csv(tmp_dir / "test_predictions.csv", index=False)
             for artifact in tmp_dir.iterdir():
                 mlflow.log_artifact(str(artifact), artifact_path="evaluation")
 
-        mlflow.log_artifact(str(REPO_ROOT / "requirements.txt"), artifact_path="environment")
+        mlflow.log_artifact(str(REPO_ROOT / "requirements.txt"),
+                            artifact_path="environment")
 
-        signature = infer_signature(x_train.head(5), model.predict(x_train.head(5)))
+        signature = infer_signature(x_train.head(
+            5), model.predict(x_train.head(5)))
         info = log_model_compat(model, signature, x_train.head(3))
         mlflow.set_tag("model_uri", getattr(info, "model_uri", ""))
 
@@ -371,10 +392,12 @@ def print_summary(run_name: str, args: argparse.Namespace, metrics: dict[str, fl
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Training + MLflow tracking DolanMalang.")
+    parser = argparse.ArgumentParser(
+        description="Training + MLflow tracking DolanMalang.")
     parser.add_argument("--model", choices=["ridge", "random_forest", "gradient_boosting"],
                         default="random_forest")
-    parser.add_argument("--alpha", type=float, default=1.0, help="Regularisasi Ridge.")
+    parser.add_argument("--alpha", type=float, default=1.0,
+                        help="Regularisasi Ridge.")
     parser.add_argument("--n-estimators", type=int, default=100)
     parser.add_argument("--max-depth", type=int, default=0,
                         help="Kedalaman maksimum pohon (0 = default model).")
@@ -385,7 +408,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--run-version", default="v1",
                         help="Penanda versi untuk nama run: [model]_[versi]_[tanggal].")
-    parser.add_argument("--run-name", default=None, help="Timpa nama run otomatis.")
+    parser.add_argument("--run-name", default=None,
+                        help="Timpa nama run otomatis.")
     parser.add_argument("--tracking-uri", default=DEFAULT_TRACKING_URI)
     return parser.parse_args(argv)
 
