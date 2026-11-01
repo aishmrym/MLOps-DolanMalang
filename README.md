@@ -175,3 +175,67 @@ Skrip menampilkan tabel perbandingan seluruh run, mendaftarkan run dengan `test_
 ### Reproduksibilitas
 Seed tetap (`--seed 42`), split berbasis waktu yang deterministik, data versi DVC, dan lingkungan Codespaces yang sama. Menjalankan ulang perintah yang sama pada versi data yang sama menghasilkan metrik yang sama.
 Proyek sudah melewati tahap inisiasi (LK-01, LK-02), perancangan pipeline data (LK-03), implementasi ingestion + preprocessing (LK-04), dan Manajemen Data Versioning Menggunakan DVC. Detail lengkap ada di `docs/`.
+
+## Model Registry dan Versioning (LK-07)
+
+Model terdaftar di MLflow Model Registry dengan nama `dolan-malang-comfort-index`.
+
+**Versi aktif untuk inferensi (alias `production`): v1**, yaitu run `gradient_boosting_v4_20261101`.
+
+### Perbandingan versi
+
+| Versi | Run | Hyperparameter utama | Test MAE | Test RMSE | Test R² | Gap train-test (MAE) | Skill vs baseline | Alias |
+|---|---|---|---|---|---|---|---|---|
+| v1 | gradient_boosting_v4_20261101 | n_estimators=150, max_depth=3, learning_rate=0.05 | 9.727 | 12.647 | 0.2945 | 3.740 | 18.5% | champion, production |
+| v2 | gradient_boosting_v6_20261101 | n_estimators=250, max_depth=4, learning_rate=0.03 | 9.594 | 12.613 | 0.2983 | 4.732 | 19.6% | staging |
+
+Baseline naif (indeks dari prakiraan mentah) memiliki test MAE 11.929. Kedua versi dilatih pada 4 snapshot data yang sama dengan split berbasis waktu (cutoff 30 Oktober 2026).
+
+### Alasan memilih v1
+
+v2 memang menurunkan test MAE dari 9.727 menjadi 9.594 (turun 0.133 atau sekitar 1.4%), tetapi gap train-test naik dari 3.740 menjadi 4.732 (naik sekitar 26%). Peningkatan akurasi yang sangat kecil dibarengi tanda overfitting yang lebih besar, sehingga v1 dipilih sebagai versi production karena lebih stabil terhadap data baru. v2 dipertahankan pada alias `staging` sebagai kandidat yang akan dievaluasi ulang ketika data bertambah.
+
+### Alur transisi
+
+1. Run terbaik hasil `select_best.py` didaftarkan sebagai **v1** (alias `champion`).
+2. Varian dengan parameter berbeda dilatih dan didaftarkan sebagai **v2**.
+3. v1 dipromosikan `staging` lalu `production`; v2 dipromosikan ke `staging`.
+
+MLflow menandai stage (None/Staging/Production) sebagai deprecated sejak versi 2.9 dan menggantinya dengan alias. Karena itu alur ini memakai alias `staging` dan `production`, dan stage legacy tetap diubah paralel supaya transisi terlihat pada UI.
+
+### Memuat model aktif
+
+```python
+import mlflow
+
+model = mlflow.pyfunc.load_model("models:/dolan-malang-comfort-index@production")
+```
+
+Uji kesiapan inferensi (memuat model dari registry, memprediksi 8 lokasi dan satu record, mengukur latensi):
+
+```bash
+python src/serving/verify_inference.py
+```
+
+Hasil uji terakhir: model termuat dalam 3.19 detik dan latensi rata-rata 3.5 ms per prediksi. MAE batch 7.33 hanya bukti bahwa model dapat dipanggil, bukan ukuran akurasi. Akurasi resminya adalah test MAE pada tabel di atas.
+
+### Silsilah data (data lineage)
+
+Versi model ditautkan ke versi data dan kode lewat DVC dan Git:
+
+- `models/registry_lineage.yaml` mencatat versi model, run, hash dataset DVC, dan commit Git.
+- `models/production.dvc` menunjuk artefak model yang sedang berstatus production.
+- `data/raw.dvc` menyimpan hash dataset yang dipakai untuk melatih model. Hash dataset v1: `942f1feba20abaaae240802876e41de7.dir`, commit Git `268978f`.
+
+### Perintah yang dipakai
+
+```bash
+python src/training/registry_workflow.py status      # lihat versi, stage, dan alias
+python src/training/registry_workflow.py compare     # bandingkan antar versi
+python src/training/registry_workflow.py register --run-name NAMA_RUN
+python src/training/registry_workflow.py promote 1 production
+python src/training/registry_workflow.py lineage     # tulis models/registry_lineage.yaml
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+```
+
+Catatan reproduksibilitas: `mlflow.db` tidak ikut Git. Di lingkungan baru, jalankan `bash scripts/run_experiments.sh` lalu `python src/training/select_best.py` terlebih dahulu agar v1 terdaftar.
