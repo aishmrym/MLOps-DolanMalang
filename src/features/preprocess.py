@@ -1,27 +1,3 @@
-"""src/features/preprocess.py
-
-Membersihkan snapshot mentah hasil src/ingestion/ingest_data.py sebelum
-dipakai pada tahap feature engineering (LK-05).
-
-Langkah pembersihan, mengikuti rancangan LK-03 bagian 2.2 (Transform -
-Cleaning):
-    1. Normalisasi timestamp ke zona waktu Asia/Jakarta (WIB)
-    2. Deduplikasi baris (location_id, time) yang tumpang tindih antar
-       pemanggilan API (mis. past_days yang beririsan dengan forecast)
-    3. Penanganan nilai kosong: gap pendek (<= 2 jam) diinterpolasi linear
-       per lokasi; gap lebih panjang dibiarkan kosong dan ditandai, tidak
-       dipaksa diisi
-    4. Validasi rentang nilai wajar per variabel (mis. kelembapan 0-100%);
-       nilai di luar rentang diubah jadi NaN (dianggap anomali sensor/API),
-       bukan dihapus barisnya
-    5. Fitur kalender sederhana: penanda akhir pekan dan hari libur nasional
-       Indonesia (dipakai lagi di LK-05 sebagai fitur proksi kepadatan)
-
-Cara pakai (dari root repositori, di dalam Codespaces):
-    python src/features/preprocess.py
-    python src/features/preprocess.py --input data/raw/snapshot_20260929T2300.csv
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -260,7 +236,8 @@ def run_preprocessing(input_path: Path | None) -> int:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Preprocessing data mentah DolanMalang.")
+    parser = argparse.ArgumentParser(
+        description="Preprocessing data mentah DolanMalang.")
     parser.add_argument(
         "--input", type=Path, default=None,
         help="Path ke file snapshot spesifik. Default: snapshot terbaru di data/raw/.",
