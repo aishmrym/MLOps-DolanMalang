@@ -1,0 +1,46 @@
+{
+  "selected_at": "2026-10-19T16:08:58",
+  "selection_criterion": "test_mae terendah",
+  "experiment": "dolan-malang-comfort-index",
+  "run_id": "f8ac1e4eef7f4697ba722dd41e262c51",
+  "run_name": "random_forest_v2_20261019",
+  "model_uri": "models:/m-2c0152401a274fee8c63235a7bb48ec3",
+  "params": {
+    "model": "random_forest",
+    "alpha": "n/a",
+    "n_estimators": "50",
+    "max_depth": "3",
+    "learning_rate": "n/a",
+    "min_samples_leaf": "5",
+    "horizon_hours": "24",
+    "seed": "42"
+  },
+  "metrics": {
+    "train_mae": 6.7726,
+    "train_rmse": 8.7909,
+    "train_r2": 0.559,
+    "test_mae": 10.5181,
+    "test_rmse": 12.6887,
+    "test_r2": 0.2379,
+    "baseline_test_mae": 7.6701,
+    "fit_seconds": 0.1321,
+    "test_skill_score_pct": -37.1305
+  },
+  "per_location_test_mae": {
+    "alun_alun_malang": 8.7154,
+    "balekambang": 6.9496,
+    "bns": 10.3326,
+    "bromo": 15.2871,
+    "coban_talun": 10.6919,
+    "jatim_park": 10.4255,
+    "kayutangan": 8.7279,
+    "panderman": 13.0146
+  },
+  "dataset_version_dvc_md5": "tidak-terlacak-dvc",
+  "git_commit": "355f0c9",
+  "registered_model": {
+    "name": "dolan-malang-comfort-index",
+    "version": 1,
+    "alias": "champion"
+  }
+}
