@@ -1,30 +1,3 @@
-"""src/ingestion/ingest_data.py
-
-Menarik data cuaca dinamis dari Open-Meteo untuk seluruh lokasi yang
-didaftarkan di config/locations.yaml, lalu menyimpannya sebagai snapshot
-bertimestamp di data/raw/.
-
-Tiga sumber yang ditarik pada satu kali eksekusi:
-    1. Forecast API      -> fitur cuaca per jam (suhu, kelembapan, dst.)
-    2. Air Quality API    -> PM2.5, PM10, US AQI per jam
-    3. Previous Runs API  -> pasangan prakiraan-aktual per lead time,
-                             dipakai untuk mengukur bias (lihat LK-01/LK-03)
-
-Desain mengikuti rancangan LK-03:
-    - permintaan dipecah per beberapa lokasi (CHUNK_SIZE) supaya tidak kena
-      rate limit (HTTP 429) seperti yang ditemukan pada uji coba LK-01
-    - retry dengan exponential backoff untuk error transien (429, 5xx,
-      koneksi putus)
-    - kegagalan satu chunk tidak menggagalkan seluruh eksekusi
-    - setiap eksekusi ditulis ke file baru bertimestamp, tidak pernah
-      menimpa snapshot lama (append-only)
-
-Cara pakai (dari root repositori, di dalam Codespaces):
-    python src/ingestion/ingest_data.py
-    python src/ingestion/ingest_data.py --chunk-size 2 --sleep 2.0
-    python src/ingestion/ingest_data.py --skip-previous-runs
-"""
-
 from __future__ import annotations
 
 import argparse
