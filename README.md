@@ -117,6 +117,23 @@ Proyek ini menggunakan **GitHub Flow**:
 - Branch di-push ke GitHub, lalu dibuka Pull Request ke `main`.
 - Merge ke `main` hanya dilakukan setelah perubahan divalidasi (review sendiri/dosen, dan notebook/script sudah dijalankan tanpa error).
 
+## Versioning Data dengan DVC (LK-05)
+
+Data di `data/raw/` dilacak DVC, bukan Git. Git hanya menyimpan file penunjuk kecil `data/raw.dvc` (berisi hash `md5` isi folder), sedangkan data aslinya disimpan di cache/remote DVC. Repositori tetap ringan dan tiap versi data tetap bisa dipulihkan.
+
+### Alur menambah versi data
+1. `python src/ingestion/ingest_data.py` mengambil data terbaru. Setiap run membuat file baru bertimestamp di `data/raw/`.
+2. `dvc status` menunjukkan `data/raw` berubah.
+3. `dvc add data/raw` menghitung ulang hash dan memperbarui `data/raw.dvc`.
+4. `git add data/raw.dvc && git commit -m "Update dataset"` lalu `git tag v2-data` untuk menandai versi.
+5. `dvc diff v1-data v2-data` membandingkan dua versi dataset.
+
+### Mengembalikan versi data lama
+`git checkout v1-data` lalu `dvc checkout` memulihkan isi `data/raw/` persis seperti versi 1.
+
+### Mengapa versioning data krusial untuk reproduksibilitas model
+Model hanya bisa direproduksi jika kode, parameter, dan data yang dipakai saat training diketahui persis. Pada sistem continual learning, data bertambah setiap hari, sehingga model hari ini dan model bulan lalu dilatih dari data berbeda. Tanpa versioning, kita tidak bisa menjawab model dilatih dengan data yang mana, dan tidak bisa menelusuri apakah penurunan akurasi berasal dari kode atau dari data yang berubah (data drift). Dengan DVC, setiap commit Git terikat ke hash dataset tertentu, sehingga eksperimen dapat diulang dan hasil dua versi data dapat dibandingkan secara adil.
+
 ## Status
 
-Proyek sudah melewati tahap inisiasi (LK-01, LK-02), perancangan pipeline data (LK-03), dan implementasi ingestion + preprocessing (LK-04). Detail lengkap ada di `docs/`.
+Proyek sudah melewati tahap inisiasi (LK-01, LK-02), perancangan pipeline data (LK-03), implementasi ingestion + preprocessing (LK-04), dan Manajemen Data Versioning Menggunakan DVC. Detail lengkap ada di `docs/`.
