@@ -1,0 +1,33 @@
+registered_model: dolan-malang-comfort-index
+generated_at: '2026-11-01T08:27:27'
+production:
+  version: 1
+  alias: production
+  run_id: 0140cba351174a6192c8f54c7c5839f0
+  run_name: gradient_boosting_v4_20261101
+  model_uri: models:/dolan-malang-comfort-index@production
+  params:
+    model: gradient_boosting
+    alpha: n/a
+    n_estimators: '150'
+    max_depth: '3'
+    learning_rate: '0.05'
+    min_samples_leaf: '1'
+    horizon_hours: '24'
+    seed: '42'
+  metrics:
+    train_mae: 5.9867
+    train_rmse: 7.9374
+    train_r2: 0.6837
+    test_mae: 9.727
+    test_rmse: 12.6468
+    test_r2: 0.2945
+    baseline_test_mae: 11.9293
+    fit_seconds: 1.2807
+    test_skill_score_pct: 18.4616
+lineage:
+  dataset_pointer: data/raw.dvc
+  dataset_dvc_md5: 942f1feba20abaaae240802876e41de7.dir
+  git_commit: 268978f
+  exported_model_dir: models/production
+  exported_model_pointer: models/production.dvc

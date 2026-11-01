@@ -1,0 +1,48 @@
+[
+  {
+    "version": "1",
+    "run_name": "gradient_boosting_v4_20261101",
+    "model": "gradient_boosting",
+    "params": {
+      "model": "gradient_boosting",
+      "n_estimators": "150",
+      "max_depth": "3",
+      "learning_rate": "0.05",
+      "min_samples_leaf": "1",
+      "horizon_hours": "24",
+      "seed": "42"
+    },
+    "train_mae": 5.986734333055755,
+    "test_mae": 9.726998048670383,
+    "test_rmse": 12.646791633742017,
+    "test_r2": 0.2945078139712126,
+    "baseline_test_mae": 11.92934045339066,
+    "skill_pct": 18.461560497205088,
+    "gap": 3.7402637156146286,
+    "aliases": [
+      "champion"
+    ]
+  },
+  {
+    "version": "2",
+    "run_name": "gradient_boosting_v6_20261101",
+    "model": "gradient_boosting",
+    "params": {
+      "model": "gradient_boosting",
+      "n_estimators": "250",
+      "max_depth": "4",
+      "learning_rate": "0.03",
+      "min_samples_leaf": "1",
+      "horizon_hours": "24",
+      "seed": "42"
+    },
+    "train_mae": 4.862066057423276,
+    "test_mae": 9.594355963367383,
+    "test_rmse": 12.613203834585397,
+    "test_r2": 0.29825018030244843,
+    "baseline_test_mae": 11.92934045339066,
+    "skill_pct": 19.57345839148725,
+    "gap": 4.732289905944106,
+    "aliases": []
+  }
+]
