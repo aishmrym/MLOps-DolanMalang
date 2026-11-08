@@ -23,3 +23,9 @@ mlartifacts/
 # Temporary files
 *.log
 .DS_Store
+
+# DVC local remote
+/dvc-remote/
+
+# Laporan hasil pipeline CI
+reports/

@@ -1,0 +1,164 @@
+name: MLOps Automation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: mlops-automation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ------------------------------------------------------------------
+  # Tahap 1: pengujian otomatis
+  # ------------------------------------------------------------------
+  test:
+    name: 1. Automated testing (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Pasang dependensi
+        run: pip install -r requirements-ci.txt
+
+      - name: Jalankan pytest
+        run: pytest
+
+  # ------------------------------------------------------------------
+  # Tahap 2: pelatihan otomatis dengan data terbaru dari DVC
+  # ------------------------------------------------------------------
+  train:
+    name: 2. Automated training (DVC + train.py)
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      run_name: ${{ steps.name.outputs.run_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Pasang dependensi
+        run: pip install -r requirements-ci.txt
+
+      - name: Tentukan nama run
+        id: name
+        run: echo "run_name=ci-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Verifikasi dataset
+        run: |
+          test -d data/raw
+          ls -lh data/raw/*.csv
+
+      - name: Latih model (train.py)
+        env:
+          RUN_NAME: ${{ steps.name.outputs.run_name }}
+        run: bash scripts/ci_train.sh
+
+      - name: Simpan hasil eksperimen MLflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-tracking
+          path: |
+            mlflow.db
+            mlruns
+            mlartifacts
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------
+  # Tahap 3: evaluasi dan validasi model terhadap ambang LK-01
+  # ------------------------------------------------------------------
+  evaluate:
+    name: 3. Model evaluation & validation (quality gate)
+    needs: train
+    runs-on: ubuntu-latest
+    outputs:
+      passed: ${{ steps.gate.outputs.passed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Pasang dependensi
+        run: pip install -r requirements-ci.txt
+
+      - name: Ambil hasil eksperimen
+        uses: actions/download-artifact@v4
+        with:
+          name: mlflow-tracking
+          path: .
+
+      - name: Quality gate
+        id: gate
+        run: python src/training/quality_gate.py --run-name "${{ needs.train.outputs.run_name }}"
+
+      - name: Simpan laporan gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-report
+          path: reports/gate_report.json
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------
+  # Tahap 4: auto-registry ke Staging (hanya jika gate lolos)
+  # ------------------------------------------------------------------
+  register:
+    name: 4. Auto-registry (MLflow Model Registry, Staging)
+    needs: [train, evaluate]
+    if: needs.evaluate.outputs.passed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Pasang dependensi
+        run: pip install -r requirements-ci.txt
+
+      - name: Ambil hasil eksperimen
+        uses: actions/download-artifact@v4
+        with:
+          name: mlflow-tracking
+          path: .
+
+      - name: Daftarkan model ke Staging
+        run: python src/training/register_staging.py --run-name "${{ needs.train.outputs.run_name }}"
+
+      - name: Simpan registry (bisa dibuka dengan mlflow ui)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-registry
+          path: |
+            mlflow.db
+            mlruns
+            mlartifacts
+            reports/registry_report.json
+          if-no-files-found: error

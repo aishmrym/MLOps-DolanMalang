@@ -1,0 +1,5 @@
+min_skill_score_pct: 10.0
+
+require_beat_baseline: true
+
+max_location_mae_ratio: 2.0
