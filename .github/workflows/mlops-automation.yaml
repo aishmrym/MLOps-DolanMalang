@@ -64,10 +64,10 @@ jobs:
         id: name
         run: echo "run_name=ci-${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      - name: Tarik data terbaru dari DVC
+      - name: Verifikasi dataset
         run: |
-          dvc pull data/raw.dvc
-          ls -la data/raw
+          test -d data/raw
+          ls -lh data/raw/*.csv
 
       - name: Latih model (train.py)
         env:
@@ -81,6 +81,7 @@ jobs:
           path: |
             mlflow.db
             mlruns
+            mlartifacts
           if-no-files-found: error
 
   # ------------------------------------------------------------------
@@ -158,5 +159,6 @@ jobs:
           path: |
             mlflow.db
             mlruns
+            mlartifacts
             reports/registry_report.json
           if-no-files-found: error
