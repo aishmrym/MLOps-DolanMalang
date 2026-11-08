@@ -24,4 +24,8 @@ mlartifacts/
 *.log
 .DS_Store
 
-printf '\n# Laporan hasil pipeline CI\nreports/\n' >> .gitignore
+# DVC local remote
+/dvc-remote/
+
+# Laporan hasil pipeline CI
+reports/
