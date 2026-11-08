@@ -23,3 +23,5 @@ mlartifacts/
 # Temporary files
 *.log
 .DS_Store
+
+printf '\n# Laporan hasil pipeline CI\nreports/\n' >> .gitignore

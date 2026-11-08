@@ -1,0 +1,4 @@
+[core]
+    remote = ci-remote
+['remote "ci-remote"']
+    url = ../dvc-remote

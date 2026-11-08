@@ -1,0 +1,10 @@
+pandas
+numpy
+requests
+scikit-learn
+matplotlib
+pyyaml
+holidays
+mlflow
+dvc
+pytest
